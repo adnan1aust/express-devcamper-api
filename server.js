@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const colors = require("colors");
+const connectToDB = require("./config/db.connection");
 const bootCampsRoutes = require("./routes/bootCamps.route");
 const { BOOT_CAMP_ROUTE_V1 } = require("./const/collections");
 const morgan = require("morgan");
@@ -10,6 +11,7 @@ dotenv.config({
 });
 
 const app = express();
+connectToDB();
 
 app.use(express.json());
 if (process.env.NODE_ENV === "development") {
@@ -32,9 +34,14 @@ app.use(BOOT_CAMP_ROUTE_V1, bootCampsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(
-    `INFO: SERVER IS RUNNING ON PORT ${PORT} ON ${process.env.NODE_ENV} MODE`
+    `SERVER INFO: SERVER IS RUNNING ON PORT ${PORT} ON ${process.env.NODE_ENV} MODE`
       .white.bold
   );
+});
+
+process.on("unhandledRejection", (err, promise) => {
+  console.log(`GLOBAL ERROR: ${err.message}`.red.bold);
+  server.close(() => process.exit(1));
 });
