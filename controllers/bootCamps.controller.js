@@ -10,7 +10,41 @@ exports.createBootCamp = asyncHandler(async (req, res, next) => {
 });
 
 exports.getBootCamps = asyncHandler(async (req, res, next) => {
-  const bootCamps = await BootCamp.find();
+  let query;
+
+  const requestQuery = { ...req.query };
+
+  const removeFields = ["select", "sort", "limit", "page"];
+
+  removeFields.forEach((param) => delete requestQuery[param]);
+
+  let queryStr = JSON.stringify(requestQuery);
+  queryStr = queryStr.replace(
+    /\b(gt|gte|lt|lte|in )\b/g,
+    (match) => `$${match}`
+  );
+
+  query = BootCamp.find(JSON.parse(queryStr));
+
+  if (req.query.select) {
+    const fields = req.query.select.split(",").join(" ");
+    query = query.select(fields);
+  }
+
+  if (req.query.sort) {
+    const sort = req.query.sort.split(",").join(" ");
+    query = query.sort(sort);
+  } else {
+    query = query.sort("-createdAt");
+  }
+
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  query = query.skip(skip).limit(limit);
+
+  const bootCamps = await query;
   res.status(200).json({
     success: true,
     count: bootCamps.length,
